@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Heart - Maya</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flappy Heart - Mobile Friendly</title>
 <style>
     body {
         margin: 0;
         background: linear-gradient(to bottom, #120024, #1a0033);
         overflow: hidden;
-        font-family: Arial, sans-serif;
-        text-align: center;
-        color: #fff;
     }
     canvas {
         display: block;
-        margin: auto;
-        background: transparent;
-        touch-action: none;
-    }
-    h1 {
-        margin: 10px 0;
-        font-size: clamp(1.2em, 4vw, 1.5em);
-        color: #ffeb3b;
+        margin: 0 auto;
+        background: linear-gradient(to bottom, #ff7eb3, #ff758c);
     }
     #scoreDisplay {
         position: absolute;
         top: 10px;
-        left: 10px;
+        right: 10px;
         font-size: clamp(16px, 5vw, 22px);
         color: white;
         font-family: Arial, sans-serif;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 6px 10px;
+        border-radius: 8px;
+        z-index: 10;
     }
     #endScreen {
         display: none;
@@ -38,160 +33,131 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.85);
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        width: 80%;
-        max-width: 300px;
-    }
-    #endScreen h2 {
-        margin-bottom: 15px;
-        font-size: clamp(16px, 4vw, 20px);
-    }
-    .btn {
-        padding: 10px 20px;
-        font-size: clamp(14px, 4vw, 18px);
-        margin: 10px;
-        border: none;
-        border-radius: 8px;
-        background: #ff4081;
         color: white;
-        cursor: pointer;
-        width: 120px;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: rgba(0,0,0,0.6);
+        padding: 20px;
+        border-radius: 12px;
     }
-    .btn:hover {
-        background: #e91e63;
+    button {
+        background: #ff4b5c;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        margin-top: 10px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #e84350;
     }
 </style>
 </head>
 <body>
-    <h1>Maya ❤️ YOU ARE MY SUNFLOWER</h1>
-    <div id="scoreDisplay">0 kisses</div>
-    <canvas id="gameCanvas"></canvas>
-    <div id="endScreen">
-        <h2 id="finalScore"></h2>
-        <button class="btn" onclick="collectKisses()">Collect Kisses</button>
-        <button class="btn" onclick="startGame()">Play Again</button>
-    </div>
+<div id="scoreDisplay">0 ❤️</div>
+<canvas id="gameCanvas"></canvas>
+
+<div id="endScreen">
+    <h2>Game Over</h2>
+    <p id="finalScore"></p>
+    <button onclick="startGame()">Restart</button>
+</div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let heart, gravity, jump, pipes, frame, score, gameOver, animationId, pulse;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// Resize canvas dynamically
-function resizeCanvas() {
-    canvas.width = window.innerWidth > 400 ? 400 : window.innerWidth;
-    canvas.height = window.innerHeight > 600 ? 600 : window.innerHeight * 0.8;
+let heart, gravity, jump, pipes, frame, score, gameOver;
+
+function drawHeart(x, y, size) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x, y - size / 2, x - size, y - size / 2, x - size, y);
+    ctx.bezierCurveTo(x - size, y + size, x, y + size * 1.5, x, y + size * 2);
+    ctx.bezierCurveTo(x, y + size * 1.5, x + size, y + size, x + size, y);
+    ctx.bezierCurveTo(x + size, y - size / 2, x, y - size / 2, x, y);
+    ctx.fillStyle = "#ff4b5c";
+    ctx.fill();
 }
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
 
 function startGame() {
-    heart = { x: 50, y: canvas.height / 2, size: 12, velocity: 0 }; // Smaller heart
-    gravity = 0.25;
-    jump = -4.5;
+    heart = { x: 50, y: canvas.height / 2, size: 12, velocity: 0 };
+    gravity = 0.20; // slower fall
+    jump = -4.0;    // softer jump
     pipes = [];
     frame = 0;
     score = 0;
     gameOver = false;
-    document.getElementById("scoreDisplay").innerText = `${score} kisses`;
+    document.getElementById("scoreDisplay").innerText = `${score} ❤️`;
     document.getElementById("endScreen").style.display = "none";
     loop();
 }
 
-function collectKisses() {
-    document.getElementById("finalScore").innerText = 
-        `💋 You collected ${score} kisses 💋`;
-}
-
 function loop() {
-    animationId = requestAnimationFrame(loop);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Heart physics
     heart.velocity += gravity;
     heart.y += heart.velocity;
 
-    // Pulse animation
-    pulse = Math.sin(Date.now() / 200) * 2;
-    drawHeart(heart.x, heart.y, heart.size + pulse, "#ff4d6d");
+    // Draw heart
+    drawHeart(heart.x, heart.y, heart.size);
 
     // Pipes
     if (frame % 90 === 0) {
-        let gap = 140;
-        let topHeight = Math.random() * (canvas.height - gap - 60) + 20;
-        pipes.push({ x: canvas.width, y: topHeight, passed: false });
+        let gap = 150;
+        let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
+        pipes.push({ x: canvas.width, y: 0, width: 40, height: topHeight });
+        pipes.push({ x: canvas.width, y: topHeight + gap, width: 40, height: canvas.height - topHeight - gap });
     }
 
-    pipes.forEach((pipe) => {
-        pipe.x -= 2;
+    pipes.forEach((pipe, i) => {
+        pipe.x -= 1.5; // slower speed
+        ctx.fillStyle = "#4CAF50";
+        ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
 
-        ctx.fillStyle = "#4caf50";
-        ctx.fillRect(pipe.x, 0, 30, pipe.y);
-        ctx.fillRect(pipe.x, pipe.y + 140, 30, canvas.height);
-
-        if (!pipe.passed && pipe.x + 30 < heart.x) {
-            score++;
-            pipe.passed = true;
-            document.getElementById("scoreDisplay").innerText = `${score} kisses`;
-        }
-
+        // Collision detection
         if (
+            heart.x < pipe.x + pipe.width &&
             heart.x + heart.size > pipe.x &&
-            heart.x - heart.size < pipe.x + 30 &&
-            (heart.y - heart.size < pipe.y ||
-            heart.y + heart.size > pipe.y + 140)
+            heart.y < pipe.y + pipe.height &&
+            heart.y + heart.size > pipe.y
         ) {
             endGame();
         }
+
+        // Scoring
+        if (pipe.x + pipe.width < heart.x && !pipe.passed && pipe.y === 0) {
+            score++;
+            document.getElementById("scoreDisplay").innerText = `${score} ❤️`;
+            pipe.passed = true;
+        }
     });
 
-    pipes = pipes.filter(pipe => pipe.x > -30);
+    pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
 
-    // Ground/ceiling collision
-    if (heart.y + heart.size > canvas.height || heart.y - heart.size < 0) {
+    // Boundaries
+    if (heart.y + heart.size > canvas.height || heart.y < 0) {
         endGame();
     }
 
     frame++;
-}
-
-function drawHeart(x, y, size, color) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.translate(x, y);
-    ctx.scale(size / 15, size / 15);
-    ctx.moveTo(0, 0);
-    ctx.bezierCurveTo(0, -3, -5, -15, -15, -15);
-    ctx.bezierCurveTo(-35, -15, -35, 10, -35, 10);
-    ctx.bezierCurveTo(-35, 25, -20, 40, 0, 50);
-    ctx.bezierCurveTo(20, 40, 35, 25, 35, 10);
-    ctx.bezierCurveTo(35, 10, 35, -15, 15, -15);
-    ctx.bezierCurveTo(5, -15, 0, -3, 0, 0);
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.restore();
+    if (!gameOver) requestAnimationFrame(loop);
 }
 
 function endGame() {
-    cancelAnimationFrame(animationId);
     gameOver = true;
-    document.getElementById("finalScore").innerText = 
-        `💋 You got ${score} kisses 💋`;
+    document.getElementById("finalScore").innerText = `Your Score: ${score} ❤️`;
     document.getElementById("endScreen").style.display = "block";
 }
 
-// Controls for keyboard and touch
-document.addEventListener("keydown", () => {
-    if (!gameOver) heart.velocity = jump;
-});
-canvas.addEventListener("touchstart", () => {
-    if (!gameOver) heart.velocity = jump;
-});
+document.addEventListener("keydown", () => { heart.velocity = jump; });
+document.addEventListener("touchstart", () => { heart.velocity = jump; });
 
 startGame();
 </script>
