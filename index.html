@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Flappy Heart</title>
 <style>
   body {
     margin: 0;
-    background: linear-gradient(to bottom, #120024, #1a0033);
+    background: linear-gradient(to bottom, #ff99cc, #ffccff);
     overflow: hidden;
   }
   #scoreDisplay {
@@ -21,36 +21,15 @@
     padding: 5px 8px;
     border-radius: 8px;
   }
-  #endScreen {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
-    font-family: Arial, sans-serif;
-  }
-  #endScreen button {
-    margin-top: 10px;
-    padding: 8px 16px;
-    border: none;
-    background-color: pink;
-    color: black;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 8px;
+  #gameCanvas {
+    display: block;
   }
 </style>
 </head>
 <body>
 <div id="scoreDisplay">0 ❤️</div>
 <canvas id="gameCanvas"></canvas>
-<div id="endScreen">
-  <h1>Game Over</h1>
-  <p id="finalScore"></p>
-  <button onclick="startGame()">Restart</button>
-</div>
+
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -58,93 +37,132 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let heart, pipes, frame, score, gameOver;
-let gravity = 0.25;
-let jump = -4.6;
+let isMobile = window.innerWidth < 768;
 
-function startGame() {
-    heart = { x: 50, y: canvas.height / 2, size: 12, velocity: 0 }; // smaller heart size
-    pipes = [];
-    frame = 0;
-    score = 0;
-    gameOver = false;
-    document.getElementById("scoreDisplay").innerText = `${score} ❤️`;
-    document.getElementById("endScreen").style.display = "none";
-    loop();
+// Game settings
+let gravity = isMobile ? 0.2 : 0.25;
+let pipeSpeed = isMobile ? 1.5 : 2;
+let pipeGap = isMobile ? 180 : 150;
+let heartSize = isMobile ? 12 : 15;
+
+let heart = { x: 50, y: canvas.height / 2, size: heartSize, velocity: 0 };
+let pipes = [];
+let score = 0;
+let gameOver = false;
+
+function drawHeart(x, y, size) {
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.bezierCurveTo(x, y - size / 2, x - size, y - size / 2, x - size, y);
+  ctx.bezierCurveTo(x - size, y + size, x, y + size * 1.5, x, y + size * 2);
+  ctx.bezierCurveTo(x, y + size * 1.5, x + size, y + size, x + size, y);
+  ctx.bezierCurveTo(x + size, y - size / 2, x, y - size / 2, x, y);
+  ctx.fill();
 }
 
-function loop() {
-    if (gameOver) return;
+function createPipe() {
+  let pipeY = Math.random() * (canvas.height - pipeGap - 100) + 50;
+  pipes.push({ x: canvas.width, y: pipeY });
+}
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function updatePipes() {
+  for (let i = pipes.length - 1; i >= 0; i--) {
+    pipes[i].x -= pipeSpeed;
 
-    heart.velocity += gravity;
-    heart.y += heart.velocity;
-
-    ctx.fillStyle = "red";
-    ctx.beginPath();
-    ctx.moveTo(heart.x, heart.y);
-    ctx.bezierCurveTo(heart.x - heart.size, heart.y - heart.size, heart.x - heart.size * 2, heart.y + heart.size / 3, heart.x, heart.y + heart.size);
-    ctx.bezierCurveTo(heart.x + heart.size * 2, heart.y + heart.size / 3, heart.x + heart.size, heart.y - heart.size, heart.x, heart.y);
-    ctx.fill();
-
-    if (frame % 90 === 0) {
-        let gap = 150;
-        let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
-        pipes.push({ x: canvas.width, y: 0, height: topHeight, passed: false });
-        pipes.push({ x: canvas.width, y: topHeight + gap, height: canvas.height - topHeight - gap });
+    // Score update
+    if (pipes[i].x + 50 === heart.x) {
+      score++;
+      updateScore();
     }
 
-    pipes.forEach((pipe) => {
-        pipe.x -= 2;
-        ctx.fillStyle = "pink";
-        ctx.fillRect(pipe.x, pipe.y, 50, pipe.height);
-
-        if (
-            heart.x < pipe.x + 50 &&
-            heart.x + heart.size > pipe.x &&
-            heart.y < pipe.y + pipe.height &&
-            heart.y + heart.size > pipe.y
-        ) {
-            endGame();
-        }
-
-        if (!pipe.passed && pipe.x + 50 < heart.x) {
-            pipe.passed = true;
-            score++;
-            updateScore();
-        }
-    });
-
-    pipes = pipes.filter(pipe => pipe.x + 50 > 0);
-
-    if (heart.y + heart.size > canvas.height || heart.y - heart.size < 0) {
-        endGame();
+    // Remove off-screen pipes
+    if (pipes[i].x < -50) {
+      pipes.splice(i, 1);
     }
+  }
+}
 
-    frame++;
-    requestAnimationFrame(loop);
+function drawPipes() {
+  ctx.fillStyle = "#ff4da6"; // brighter pipe color
+  pipes.forEach(pipe => {
+    ctx.fillRect(pipe.x, 0, 50, pipe.y);
+    ctx.fillRect(pipe.x, pipe.y + pipeGap, 50, canvas.height - (pipe.y + pipeGap));
+  });
 }
 
 function updateScore() {
-    document.getElementById("scoreDisplay").innerText = `${score} ❤️`;
+  document.getElementById("scoreDisplay").innerText = score + " ❤️";
 }
 
-function endGame() {
+function checkCollision() {
+  for (let pipe of pipes) {
+    if (
+      heart.x + heart.size > pipe.x &&
+      heart.x - heart.size < pipe.x + 50 &&
+      (heart.y - heart.size < pipe.y || heart.y + heart.size > pipe.y + pipeGap)
+    ) {
+      gameOver = true;
+    }
+  }
+  if (heart.y + heart.size > canvas.height || heart.y - heart.size < 0) {
     gameOver = true;
-    document.getElementById("finalScore").innerText = `Score: ${score} ❤️`;
-    document.getElementById("endScreen").style.display = "block";
+  }
 }
 
-window.addEventListener("keydown", () => {
-    if (!gameOver) heart.velocity = jump;
+function resetGame() {
+  heart.y = canvas.height / 2;
+  heart.velocity = 0;
+  pipes = [];
+  score = 0;
+  updateScore();
+  gameOver = false;
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  heart.velocity += gravity;
+  heart.y += heart.velocity;
+
+  if (!gameOver) {
+    updatePipes();
+    checkCollision();
+    drawHeart(heart.x, heart.y, heart.size);
+    drawPipes();
+  } else {
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over - Tap to Restart", canvas.width / 2, canvas.height / 2);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+canvas.addEventListener("touchstart", () => {
+  if (!gameOver) {
+    heart.velocity = -5;
+  } else {
+    resetGame();
+  }
 });
 
-window.addEventListener("touchstart", () => {
-    if (!gameOver) heart.velocity = jump;
+canvas.addEventListener("mousedown", () => {
+  if (!gameOver) {
+    heart.velocity = -5;
+  } else {
+    resetGame();
+  }
 });
 
-startGame();
+// Pipe generation
+setInterval(() => {
+  if (!gameOver) createPipe();
+}, 2000);
+
+updateScore();
+gameLoop();
 </script>
 </body>
 </html>
