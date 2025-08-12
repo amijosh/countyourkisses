@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Heart - Maya</title>
+<style>
+    body {
+        margin: 0;
+        background: linear-gradient(to bottom, #120024, #1a0033);
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        color: #fff;
+    }
+    canvas {
+        display: block;
+        margin: auto;
+        background: transparent;
+        touch-action: none;
+    }
+    h1 {
+        margin: 10px 0;
+        font-size: clamp(1.2em, 4vw, 1.5em);
+        color: #ffeb3b;
+    }
+    #scoreDisplay {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: clamp(16px, 5vw, 22px);
+        color: white;
+        font-family: Arial, sans-serif;
+    }
+    #endScreen {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.85);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        width: 80%;
+        max-width: 300px;
+    }
+    #endScreen h2 {
+        margin-bottom: 15px;
+        font-size: clamp(16px, 4vw, 20px);
+    }
+    .btn {
+        padding: 10px 20px;
+        font-size: clamp(14px, 4vw, 18px);
+        margin: 10px;
+        border: none;
+        border-radius: 8px;
+        background: #ff4081;
+        color: white;
+        cursor: pointer;
+        width: 120px;
+    }
+    .btn:hover {
+        background: #e91e63;
+    }
+</style>
+</head>
+<body>
+    <h1>Maya ❤️ YOU ARE MY SUNFLOWER</h1>
+    <div id="scoreDisplay">0 kisses</div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="endScreen">
+        <h2 id="finalScore"></h2>
+        <button class="btn" onclick="collectKisses()">Collect Kisses</button>
+        <button class="btn" onclick="startGame()">Play Again</button>
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let heart, gravity, jump, pipes, frame, score, gameOver, animationId, pulse;
+
+// Resize canvas dynamically
+function resizeCanvas() {
+    canvas.width = window.innerWidth > 400 ? 400 : window.innerWidth;
+    canvas.height = window.innerHeight > 600 ? 600 : window.innerHeight * 0.8;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function startGame() {
+    heart = { x: 50, y: canvas.height / 2, size: 12, velocity: 0 }; // Smaller heart
+    gravity = 0.25;
+    jump = -4.5;
+    pipes = [];
+    frame = 0;
+    score = 0;
+    gameOver = false;
+    document.getElementById("scoreDisplay").innerText = `${score} kisses`;
+    document.getElementById("endScreen").style.display = "none";
+    loop();
+}
+
+function collectKisses() {
+    document.getElementById("finalScore").innerText = 
+        `💋 You collected ${score} kisses 💋`;
+}
+
+function loop() {
+    animationId = requestAnimationFrame(loop);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Heart physics
+    heart.velocity += gravity;
+    heart.y += heart.velocity;
+
+    // Pulse animation
+    pulse = Math.sin(Date.now() / 200) * 2;
+    drawHeart(heart.x, heart.y, heart.size + pulse, "#ff4d6d");
+
+    // Pipes
+    if (frame % 90 === 0) {
+        let gap = 140;
+        let topHeight = Math.random() * (canvas.height - gap - 60) + 20;
+        pipes.push({ x: canvas.width, y: topHeight, passed: false });
+    }
+
+    pipes.forEach((pipe) => {
+        pipe.x -= 2;
+
+        ctx.fillStyle = "#4caf50";
+        ctx.fillRect(pipe.x, 0, 30, pipe.y);
+        ctx.fillRect(pipe.x, pipe.y + 140, 30, canvas.height);
+
+        if (!pipe.passed && pipe.x + 30 < heart.x) {
+            score++;
+            pipe.passed = true;
+            document.getElementById("scoreDisplay").innerText = `${score} kisses`;
+        }
+
+        if (
+            heart.x + heart.size > pipe.x &&
+            heart.x - heart.size < pipe.x + 30 &&
+            (heart.y - heart.size < pipe.y ||
+            heart.y + heart.size > pipe.y + 140)
+        ) {
+            endGame();
+        }
+    });
+
+    pipes = pipes.filter(pipe => pipe.x > -30);
+
+    // Ground/ceiling collision
+    if (heart.y + heart.size > canvas.height || heart.y - heart.size < 0) {
+        endGame();
+    }
+
+    frame++;
+}
+
+function drawHeart(x, y, size, color) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.translate(x, y);
+    ctx.scale(size / 15, size / 15);
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(0, -3, -5, -15, -15, -15);
+    ctx.bezierCurveTo(-35, -15, -35, 10, -35, 10);
+    ctx.bezierCurveTo(-35, 25, -20, 40, 0, 50);
+    ctx.bezierCurveTo(20, 40, 35, 25, 35, 10);
+    ctx.bezierCurveTo(35, 10, 35, -15, 15, -15);
+    ctx.bezierCurveTo(5, -15, 0, -3, 0, 0);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+}
+
+function endGame() {
+    cancelAnimationFrame(animationId);
+    gameOver = true;
+    document.getElementById("finalScore").innerText = 
+        `💋 You got ${score} kisses 💋`;
+    document.getElementById("endScreen").style.display = "block";
+}
+
+// Controls for keyboard and touch
+document.addEventListener("keydown", () => {
+    if (!gameOver) heart.velocity = jump;
+});
+canvas.addEventListener("touchstart", () => {
+    if (!gameOver) heart.velocity = jump;
+});
+
+startGame();
+</script>
+</body>
+</html>
